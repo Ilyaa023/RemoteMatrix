@@ -73,6 +73,9 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_ui_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_ui_version"
     implementation("androidx.compose.runtime:runtime-tracing:1.0.0-alpha03")
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1"
+    implementation "androidx.compose.runtime:runtime-livedata:$compose_ui_version"
+
 
     implementation("androidx.core:core-splashscreen:1.0.0")
 }

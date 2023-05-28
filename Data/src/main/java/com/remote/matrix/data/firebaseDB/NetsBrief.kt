@@ -3,7 +3,6 @@ package com.remote.matrix.data.firebaseDB
 import android.util.Log
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ktx.getValue
 import com.remote.domain.interfaces.INetsBriefRepo
 import com.remote.domain.models.NetBrief
 
@@ -24,7 +23,7 @@ class NetsBrief (): INetsBriefRepo {
                             .getValue(Int::class.java)!!,
                         connectedDevices = snapToArrayList(child.child("connectedDevices"))
                     ))
-            Log.e("TAG", "getNets: $listOfNets")
+            callback(listOfNets)
         }
     }
 
