@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+
+    <style name="Theme.RemoteMatrix.Splash" parent="Theme.RemoteMatrix">
+<!--        <item name="windowSplashScreenBackground"></item>-->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_app</item>
+        <item name="windowSplashScreenAnimationDuration">800</item>
+        <item name="postSplashScreenTheme">@style/Theme.RemoteMatrix</item>
+    </style>
+
+</resources>
