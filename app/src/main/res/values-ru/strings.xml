@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RemoteMatrix</string>
+
+    <string name="title_activity_select">SelectActivity</string>
+
+    <string name="net_id">ID: </string>
+    <string name="net_bmn_cnt">Количество ОИНов: </string>
+    <string name="net_dvcs">Подключенные устройства: </string>
+    <string name="net_no_dvcs">Нет подключенных устройств</string>
+
+    <string name="refresh">Обновить</string>
+</resources>

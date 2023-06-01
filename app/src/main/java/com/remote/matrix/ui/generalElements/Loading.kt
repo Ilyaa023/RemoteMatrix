@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.progressSemantics
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,7 +59,7 @@ fun LoadingCube(
         Modifier
             .progressSemantics()
             .size(size)
-            .background(backgroundColor)
+            .background(backgroundColor, RoundedCornerShape(20.dp))
     ) {
         val circleRadius = size.toPx() / count / 2
         val offset = Offset(
