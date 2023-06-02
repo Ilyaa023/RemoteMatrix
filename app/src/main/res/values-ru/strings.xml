@@ -8,6 +8,7 @@
     <string name="net_bmn_cnt">Количество ОИНов: </string>
     <string name="net_dvcs">Подключенные устройства: </string>
     <string name="net_no_dvcs">Нет подключенных устройств</string>
+    <string name="net_select">Выберите Сеть</string>
 
     <string name="refresh">Обновить</string>
 </resources>

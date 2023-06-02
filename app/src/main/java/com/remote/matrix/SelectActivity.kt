@@ -3,6 +3,7 @@ package com.remote.matrix
     import android.os.Bundle
     import androidx.activity.ComponentActivity
     import androidx.activity.compose.setContent
+    import androidx.compose.foundation.Image
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.isSystemInDarkTheme
@@ -17,11 +18,14 @@ package com.remote.matrix
     import androidx.compose.foundation.layout.padding
     import androidx.compose.foundation.layout.width
     import androidx.compose.foundation.lazy.LazyColumn
+    import androidx.compose.foundation.pager.VerticalPager
     import androidx.compose.foundation.shape.RoundedCornerShape
+    import androidx.compose.material.AppBarDefaults
     import androidx.compose.material.Button
     import androidx.compose.material.MaterialTheme
     import androidx.compose.material.Surface
     import androidx.compose.material.Text
+    import androidx.compose.material.TopAppBar
     import androidx.compose.runtime.Composable
     import androidx.compose.runtime.collectAsState
     import androidx.compose.runtime.getValue
@@ -29,7 +33,12 @@ package com.remote.matrix
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.graphics.Color
+    import androidx.compose.ui.graphics.ColorFilter
+    import androidx.compose.ui.graphics.painter.Painter
+    import androidx.compose.ui.res.painterResource
     import androidx.compose.ui.res.stringResource
+    import androidx.compose.ui.text.font.FontStyle
+    import androidx.compose.ui.text.font.FontWeight
     import androidx.compose.ui.tooling.preview.Preview
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
@@ -79,11 +88,40 @@ class SelectActivity : ComponentActivity() {
 fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listOfNets by viewModel.listOfNets.observeAsState()
-//    TODO("add the buttons: refresh, language, theme")
+//    TODO("add the buttons: language, theme")
     Column() {
-        Button(onClick = { viewModel.refresh() }, modifier = Modifier.fillMaxWidth()) {
-            Text(text = stringResource(id = R.string.refresh), color = MaterialTheme.colors.onPrimary)
+        TopAppBar(
+            backgroundColor = MaterialTheme.colors.primary,
+            contentColor = MaterialTheme.colors.onPrimary,
+            contentPadding = AppBarDefaults.ContentPadding
+        ) {
+            Text(text = stringResource(id = R.string.net_select),
+                 color = MaterialTheme.colors.onPrimary,
+                 modifier = Modifier
+                     .weight(1f)
+                     .padding(10.dp, 0.dp),
+                 fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Image(painter = painterResource(id = R.drawable.ic_settings),
+                  contentDescription = "",
+                  modifier = Modifier
+                      .clickable { /*TODO: settings menu*/ }
+                      .padding(10.dp, 0.dp),
+                  colorFilter = ColorFilter.tint(color = MaterialTheme.colors.onPrimary))
         }
+//        Button(onClick = { viewModel.refresh() }) {
+//            Row(modifier = Modifier.fillMaxWidth()) {
+//                Image(painter = painterResource(id = R.drawable.ic_refresh),
+//                      contentDescription = "",
+//                      colorFilter = ColorFilter.tint(color = MaterialTheme.colors.onPrimary)
+//                )
+//                Text(text = stringResource(id = R.string.refresh), color = MaterialTheme.colors.onPrimary)
+//            }
+//        }
+
+//        VerticalPager(pageCount = 10) {
+//            Text(text = "page content $it")
+//        }
+//        TODO(make a refresh button/start display)
         LazyColumn(
             modifier = Modifier
                 .padding(0.dp)
