@@ -10,5 +10,7 @@
     <string name="net_no_dvcs">Нет подключенных устройств</string>
     <string name="net_select">Выберите Сеть</string>
 
+    <string name="change_theme">Сменить тему</string>
+    <string name="settings">Настройки</string>
     <string name="refresh">Обновить</string>
 </resources>

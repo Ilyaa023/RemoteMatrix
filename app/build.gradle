@@ -76,6 +76,9 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1"
     implementation "androidx.compose.runtime:runtime-livedata:$compose_ui_version"
 
+    implementation 'com.google.accompanist:accompanist-swiperefresh:0.24.13-rc'
+    implementation 'androidx.compose.material3:material3:1.1.0'
+    implementation 'me.saket.cascade:cascade-compose:2.1.0'
 
     implementation("androidx.core:core-splashscreen:1.0.0")
 }

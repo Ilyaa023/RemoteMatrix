@@ -1,61 +1,77 @@
 package com.remote.matrix
 
+    import android.content.Context
     import android.os.Bundle
     import androidx.activity.ComponentActivity
     import androidx.activity.compose.setContent
+    import androidx.compose.animation.AnimatedVisibility
+    import androidx.compose.animation.expandIn
+    import androidx.compose.animation.fadeIn
+    import androidx.compose.animation.fadeOut
+    import androidx.compose.animation.shrinkOut
+    import androidx.compose.animation.slideIn
+    import androidx.compose.animation.slideInVertically
+    import androidx.compose.animation.slideOut
+    import androidx.compose.animation.slideOutVertically
     import androidx.compose.foundation.Image
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.isSystemInDarkTheme
-    import androidx.compose.foundation.layout.Arrangement
     import androidx.compose.foundation.layout.Box
     import androidx.compose.foundation.layout.Column
     import androidx.compose.foundation.layout.Row
-    import androidx.compose.foundation.layout.fillMaxHeight
     import androidx.compose.foundation.layout.fillMaxSize
     import androidx.compose.foundation.layout.fillMaxWidth
     import androidx.compose.foundation.layout.height
     import androidx.compose.foundation.layout.padding
     import androidx.compose.foundation.layout.width
     import androidx.compose.foundation.lazy.LazyColumn
-    import androidx.compose.foundation.pager.VerticalPager
     import androidx.compose.foundation.shape.RoundedCornerShape
     import androidx.compose.material.AppBarDefaults
-    import androidx.compose.material.Button
+    import androidx.compose.material.DropdownMenu
+    import androidx.compose.material.DropdownMenuItem
     import androidx.compose.material.MaterialTheme
     import androidx.compose.material.Surface
+    import androidx.compose.material.Switch
     import androidx.compose.material.Text
     import androidx.compose.material.TopAppBar
     import androidx.compose.runtime.Composable
     import androidx.compose.runtime.collectAsState
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.livedata.observeAsState
+    import androidx.compose.runtime.mutableStateOf
+    import androidx.compose.runtime.remember
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
+    import androidx.compose.ui.geometry.Offset
     import androidx.compose.ui.graphics.Color
     import androidx.compose.ui.graphics.ColorFilter
-    import androidx.compose.ui.graphics.painter.Painter
     import androidx.compose.ui.res.painterResource
     import androidx.compose.ui.res.stringResource
-    import androidx.compose.ui.text.font.FontStyle
     import androidx.compose.ui.text.font.FontWeight
     import androidx.compose.ui.tooling.preview.Preview
+    import androidx.compose.ui.unit.IntOffset
+    import androidx.compose.ui.unit.IntSize
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
     import androidx.lifecycle.LiveData
     import androidx.lifecycle.MutableLiveData
     import androidx.lifecycle.ViewModel
+    import androidx.lifecycle.ViewModelProvider
     import androidx.lifecycle.viewModelScope
     import androidx.lifecycle.viewmodel.compose.viewModel
+    import com.remote.domain.models.AppData
     import com.remote.domain.models.NetBrief
     import com.remote.domain.useCases.brief.GetNetsBrief
     import com.remote.matrix.data.firebaseDB.NetsBrief
-    import com.remote.matrix.ui.generalElements.LoadingCube
+    import com.remote.matrix.data.local.LocalDataRepo
+    import com.remote.matrix.ui.generalElements.LoadingBlink
     import com.remote.matrix.ui.theme.RemoteMatrixTheme
     import com.remote.matrix.ui.theme.TertiaryContainerDark
     import com.remote.matrix.ui.theme.TertiaryContainerLight
     import com.remote.matrix.ui.theme.TertiaryDark
     import com.remote.matrix.ui.theme.TertiaryLight
+    import com.remote.matrix.ui.theme.changeAlpha
     import com.remote.matrix.ui.theme.onTertiaryContainerDark
     import com.remote.matrix.ui.theme.onTertiaryContainerLight
     import com.remote.matrix.ui.theme.onTertiaryDark
@@ -65,13 +81,19 @@ package com.remote.matrix
     import kotlinx.coroutines.launch
 
 class SelectActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val viewModel: SelectActivityViewModel = viewModel()
+            val viewModel: SelectActivityViewModel = viewModel(factory = SAVMFactory(applicationContext))
+            val theme by viewModel.theme.collectAsState()
+            val language by viewModel.language.collectAsState()
+
             viewModel.refresh()
-            RemoteMatrixTheme {
+            RemoteMatrixTheme(darkTheme = when(theme){
+                AppData.DARK_MODE -> true
+                AppData.LIGHT_MODE -> false
+                else -> isSystemInDarkTheme()
+            }) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
@@ -83,12 +105,15 @@ class SelectActivity : ComponentActivity() {
     }
 }
 
-
 @Composable
 fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listOfNets by viewModel.listOfNets.observeAsState()
+    val isMenuOpened = remember { mutableStateOf(false) }
+
+
 //    TODO("add the buttons: language, theme")
+
     Column() {
         TopAppBar(
             backgroundColor = MaterialTheme.colors.primary,
@@ -101,27 +126,19 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
                      .weight(1f)
                      .padding(10.dp, 0.dp),
                  fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Image(painter = painterResource(id = R.drawable.ic_refresh),
+                  contentDescription = "",
+                  modifier = Modifier
+                      .clickable { viewModel.refresh() }
+                      .padding(10.dp, 0.dp),
+                  colorFilter = ColorFilter.tint(color = MaterialTheme.colors.onPrimary))
             Image(painter = painterResource(id = R.drawable.ic_settings),
                   contentDescription = "",
                   modifier = Modifier
-                      .clickable { /*TODO: settings menu*/ }
+                      .clickable { isMenuOpened.value = true }
                       .padding(10.dp, 0.dp),
                   colorFilter = ColorFilter.tint(color = MaterialTheme.colors.onPrimary))
         }
-//        Button(onClick = { viewModel.refresh() }) {
-//            Row(modifier = Modifier.fillMaxWidth()) {
-//                Image(painter = painterResource(id = R.drawable.ic_refresh),
-//                      contentDescription = "",
-//                      colorFilter = ColorFilter.tint(color = MaterialTheme.colors.onPrimary)
-//                )
-//                Text(text = stringResource(id = R.string.refresh), color = MaterialTheme.colors.onPrimary)
-//            }
-//        }
-
-//        VerticalPager(pageCount = 10) {
-//            Text(text = "page content $it")
-//        }
-//        TODO(make a refresh button/start display)
         LazyColumn(
             modifier = Modifier
                 .padding(0.dp)
@@ -130,7 +147,11 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
             for (net in listOfNets!!) {
                 counter++
                 item {
-                    NetElement(net = net)
+                    AnimatedVisibility(visible = !isRefreshing,
+                                       enter = slideInVertically () + fadeIn(),
+                                       exit = slideOutVertically() + fadeOut()) {
+                        NetElement(net = net)
+                    }
                 }
                 if (counter < listOfNets!!.size)
                     item {
@@ -143,12 +164,62 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
             }
         }
     }
+
     if (isRefreshing)
         Box(modifier = Modifier
             .fillMaxSize()
+            .background(color = Color.changeAlpha(Color.DarkGray, 0.5f))
             .clickable {}, contentAlignment = Alignment.Center) {
-            LoadingCube(size = 200.dp, count = 20)
+            LoadingBlink(size = 200.dp, count = 20, color2 = MaterialTheme.colors.primary)
         }
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd){
+        DropdownMenu(expanded = isMenuOpened.value, onDismissRequest = { isMenuOpened.value = false }) {
+            DropdownMenuItem(onClick = {}) {
+                Image(painter = painterResource(id = R.drawable.ic_settings_brightness), null)
+                Text("theme")
+                Switch(checked = true, onCheckedChange = {})
+            }
+        }
+    }
+
+//    AnimatedVisibility(
+//        visible = isMenuOpened.value,
+//        enter = fadeIn(),
+//        exit = fadeOut()
+//    ) {
+//        Box(modifier = Modifier
+//            .fillMaxSize()
+//            .background(color = Color.changeAlpha(Color.DarkGray, 0.3f))
+//            .clickable { isMenuOpened.value = false }, contentAlignment = Alignment.TopEnd) {
+//            AnimatedVisibility(
+//                modifier = Modifier.padding(10.dp, 56.dp),
+//                visible = isMenuOpened.value,
+//                enter = slideIn { IntOffset(100, -100) },
+//                exit = slideOut { IntOffset(100, -100) }
+//            ) {
+//                Box(
+//                    Modifier.background(
+//                        MaterialTheme.colors.background,
+//                        RoundedCornerShape(20.dp)
+//                    )
+//                ) {
+//                    Box(modifier = Modifier
+//                        .background(MaterialTheme.colors.background)
+//                        .width(20.dp)
+//                        .height(20.dp), contentAlignment = Alignment.TopEnd) {}
+//                    Column(modifier = Modifier.padding(15.dp)) {
+//                        Text(
+//                            text = stringResource(R.string.settings),
+//                            color = MaterialTheme.colors.onBackground,
+//                            fontSize = 13.sp
+//                        )
+//
+//                    }
+//                }
+//            }
+//        }
+//    }
 }
 
 @Preview(showBackground = true)
@@ -210,14 +281,22 @@ fun NetElement(net: NetBrief){
     }
 }
 
-class SelectActivityViewModel: ViewModel(){
+class SelectActivityViewModel(context: Context): ViewModel(){
     private val _isRefreshing = MutableStateFlow(true)
     private val _listOfNets = MutableLiveData(ArrayList<NetBrief>())
+    private val _appData: AppData
+    init {
+        _appData = LocalDataRepo(context).getData()
+    }
 
     val isRefreshing: StateFlow<Boolean>
         get() = _isRefreshing
     val listOfNets: LiveData<ArrayList<NetBrief>>
         get() = _listOfNets
+    val theme: StateFlow<Int>
+        get() = MutableStateFlow(_appData.themeMode)
+    val language: StateFlow<Int>
+        get() = MutableStateFlow(_appData.languageMode)
 
     fun refresh(){
         _isRefreshing.value = true
@@ -228,4 +307,9 @@ class SelectActivityViewModel: ViewModel(){
             }
         }
     }
+}
+
+class SAVMFactory(private val context: Context) : ViewModelProvider.NewInstanceFactory() {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        SelectActivityViewModel(context) as T
 }

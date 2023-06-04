@@ -1,9 +1,11 @@
 package com.remote.matrix.ui.theme
 
+import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
+import androidx.compose.material.primarySurface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -47,10 +49,26 @@ fun RemoteMatrixTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Comp
         LightColorPalette
     }
 
-    systemUiController.setStatusBarColor(colors.surface)
-    systemUiController.setSystemBarsColor(colors.surface)
+    systemUiController.setStatusBarColor(colors.primarySurface)
+    systemUiController.setSystemBarsColor(Color.Transparent)
 
     MaterialTheme(
         colors = colors, typography = Typography, shapes = Shapes, content = content
     )
 }
+
+fun Color.Companion.changeAlpha(color: Color, alpha: Float): Color = Color(color.red, color.green, color.blue, alpha)
+
+fun Color.Companion.getGradientColor(color1: Color, color2: Color, level: Float): Color =
+    if (level <= 0) color1
+    else if (level >= 1) color2
+    else {
+        Color(
+            red = (color2.red * level + color1.red * (1 - level)),
+            green = (color2.green * level + color1.green * (1 - level)),
+            blue = (color2.blue * level + color1.blue * (1 - level)),
+            alpha = (color2.alpha * level + color1.alpha * (1 - level))
+        )
+    }
+
+
