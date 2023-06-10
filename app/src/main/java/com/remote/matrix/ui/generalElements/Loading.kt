@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.remote.matrix.ui.theme.TertiaryDark
 import com.remote.matrix.ui.theme.TertiaryLight
+import com.remote.matrix.ui.theme.changeAlpha
 import com.remote.matrix.ui.theme.getGradientColor
 import kotlin.math.PI
 import kotlin.math.pow
@@ -141,6 +142,52 @@ fun LoadingBlink(
                         radius = circleRadius * 0.8f + circleRadius * 1f * scale
                     )
             }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoadingBigBlink(
+        count: Int = 3,
+        size: Dp = 320.dp,
+        color1: Color = if(isSystemInDarkTheme()) TertiaryDark else TertiaryLight,
+        color2: Color = color1,
+        backgroundColor: Color = MaterialTheme.colors.background
+) {
+    val transitionX = rememberInfiniteTransition()
+    val currentXPhase by transitionX.animateValue(
+        360,
+        0,
+        Int.VectorConverter,
+        infiniteRepeatable(animation = tween(
+                durationMillis = 1000,
+                easing = LinearEasing
+        ))
+    )
+    val transitionY = rememberInfiniteTransition()
+    val currentYPhase by transitionY.animateValue(
+        0,
+        360,
+        Int.VectorConverter,
+        infiniteRepeatable(animation = tween(
+                durationMillis = 2000,
+                easing = LinearEasing
+        ))
+    )
+
+    Canvas(
+        Modifier
+            .progressSemantics()
+            .size(size)
+            .background(backgroundColor, RoundedCornerShape(20.dp))
+    ) {
+        val maxRadius = size.toPx() * 0.4
+        for (i in 1..count){
+            var phase = currentYPhase + i * 360 / count
+            if (phase >= 360) phase -= 360
+            drawCircle(color = Color.changeAlpha(color2, 1 - (phase) / 360f), radius = (maxRadius * phase / 360).toFloat())
+        }
+        drawCircle(color = color1, radius = (size.toPx() / 8 + 10 * (1 + sin(currentXPhase * PI / 180))).toFloat())
     }
 }
 
