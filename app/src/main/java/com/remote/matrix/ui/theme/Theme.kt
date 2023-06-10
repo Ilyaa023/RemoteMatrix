@@ -57,7 +57,15 @@ fun RemoteMatrixTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Comp
     )
 }
 
-fun Color.Companion.changeAlpha(color: Color, alpha: Float): Color = Color(color.red, color.green, color.blue, alpha)
+fun Color.Companion.changeAlpha(color: Color, alpha: Float): Color =
+    Color(
+        red = color.red,
+        green = color.green,
+        blue = color.blue,
+        alpha = if (alpha <= 0f) 0f
+                else if (alpha >= 1f) 1f
+                else alpha
+    )
 
 fun Color.Companion.getGradientColor(color1: Color, color2: Color, level: Float): Color =
     if (level <= 0) color1
