@@ -49,8 +49,8 @@ fun RemoteMatrixTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Comp
         LightColorPalette
     }
 
-    systemUiController.setStatusBarColor(colors.primarySurface)
-    systemUiController.setSystemBarsColor(Color.Transparent)
+//    systemUiController.setStatusBarColor(colors.primarySurface)
+    systemUiController.setSystemBarsColor(colors.primaryVariant)
 
     MaterialTheme(
         colors = colors, typography = Typography, shapes = Shapes, content = content
