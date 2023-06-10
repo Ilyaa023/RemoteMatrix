@@ -5,13 +5,9 @@ package com.remote.matrix
     import androidx.activity.ComponentActivity
     import androidx.activity.compose.setContent
     import androidx.compose.animation.AnimatedVisibility
-    import androidx.compose.animation.expandIn
     import androidx.compose.animation.fadeIn
     import androidx.compose.animation.fadeOut
-    import androidx.compose.animation.shrinkOut
-    import androidx.compose.animation.slideIn
     import androidx.compose.animation.slideInVertically
-    import androidx.compose.animation.slideOut
     import androidx.compose.animation.slideOutVertically
     import androidx.compose.foundation.Image
     import androidx.compose.foundation.background
@@ -19,39 +15,41 @@ package com.remote.matrix
     import androidx.compose.foundation.isSystemInDarkTheme
     import androidx.compose.foundation.layout.Box
     import androidx.compose.foundation.layout.Column
+    import androidx.compose.foundation.layout.PaddingValues
     import androidx.compose.foundation.layout.Row
     import androidx.compose.foundation.layout.fillMaxSize
     import androidx.compose.foundation.layout.fillMaxWidth
     import androidx.compose.foundation.layout.height
     import androidx.compose.foundation.layout.padding
-    import androidx.compose.foundation.layout.width
+    import androidx.compose.foundation.layout.wrapContentSize
     import androidx.compose.foundation.lazy.LazyColumn
     import androidx.compose.foundation.shape.RoundedCornerShape
-    import androidx.compose.material.AppBarDefaults
     import androidx.compose.material.DropdownMenu
     import androidx.compose.material.DropdownMenuItem
+    import androidx.compose.material.Icon
+    import androidx.compose.material.IconButton
     import androidx.compose.material.MaterialTheme
     import androidx.compose.material.Surface
     import androidx.compose.material.Switch
     import androidx.compose.material.Text
     import androidx.compose.material.TopAppBar
+    import androidx.compose.material.icons.Icons
+    import androidx.compose.material.icons.filled.MoreVert
+    import androidx.compose.material.icons.filled.Refresh
     import androidx.compose.runtime.Composable
     import androidx.compose.runtime.collectAsState
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.livedata.observeAsState
     import androidx.compose.runtime.mutableStateOf
     import androidx.compose.runtime.remember
+    import androidx.compose.runtime.setValue
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
-    import androidx.compose.ui.geometry.Offset
     import androidx.compose.ui.graphics.Color
-    import androidx.compose.ui.graphics.ColorFilter
     import androidx.compose.ui.res.painterResource
     import androidx.compose.ui.res.stringResource
     import androidx.compose.ui.text.font.FontWeight
     import androidx.compose.ui.tooling.preview.Preview
-    import androidx.compose.ui.unit.IntOffset
-    import androidx.compose.ui.unit.IntSize
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
     import androidx.lifecycle.LiveData
@@ -65,7 +63,7 @@ package com.remote.matrix
     import com.remote.domain.useCases.brief.GetNetsBrief
     import com.remote.matrix.data.firebaseDB.NetsBrief
     import com.remote.matrix.data.local.LocalDataRepo
-    import com.remote.matrix.ui.generalElements.LoadingBlink
+    import com.remote.matrix.ui.generalElements.LoadingBigBlink
     import com.remote.matrix.ui.theme.RemoteMatrixTheme
     import com.remote.matrix.ui.theme.TertiaryContainerDark
     import com.remote.matrix.ui.theme.TertiaryContainerLight
@@ -79,6 +77,7 @@ package com.remote.matrix
     import kotlinx.coroutines.flow.MutableStateFlow
     import kotlinx.coroutines.flow.StateFlow
     import kotlinx.coroutines.launch
+    import me.saket.cascade.CascadeDropdownMenu
 
 class SelectActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,6 +86,7 @@ class SelectActivity : ComponentActivity() {
             val viewModel: SelectActivityViewModel = viewModel(factory = SAVMFactory(applicationContext))
             val theme by viewModel.theme.collectAsState()
             val language by viewModel.language.collectAsState()
+
 
             viewModel.refresh()
             RemoteMatrixTheme(darkTheme = when(theme){
@@ -109,8 +109,9 @@ class SelectActivity : ComponentActivity() {
 fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listOfNets by viewModel.listOfNets.observeAsState()
-    val isMenuOpened = remember { mutableStateOf(false) }
-
+    var isMenuOpened by remember { mutableStateOf(false) }
+    var expandedTheme by remember { mutableStateOf(false) }
+    var expandedLanguage by remember { mutableStateOf(false) }
 
 //    TODO("add the buttons: language, theme")
 
@@ -118,7 +119,7 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
         TopAppBar(
             backgroundColor = MaterialTheme.colors.primary,
             contentColor = MaterialTheme.colors.onPrimary,
-            contentPadding = AppBarDefaults.ContentPadding
+            contentPadding = PaddingValues(0.dp)
         ) {
             Text(text = stringResource(id = R.string.net_select),
                  color = MaterialTheme.colors.onPrimary,
@@ -126,18 +127,20 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
                      .weight(1f)
                      .padding(10.dp, 0.dp),
                  fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Image(painter = painterResource(id = R.drawable.ic_refresh),
-                  contentDescription = "",
-                  modifier = Modifier
-                      .clickable { viewModel.refresh() }
-                      .padding(10.dp, 0.dp),
-                  colorFilter = ColorFilter.tint(color = MaterialTheme.colors.onPrimary))
-            Image(painter = painterResource(id = R.drawable.ic_settings),
-                  contentDescription = "",
-                  modifier = Modifier
-                      .clickable { isMenuOpened.value = true }
-                      .padding(10.dp, 0.dp),
-                  colorFilter = ColorFilter.tint(color = MaterialTheme.colors.onPrimary))
+            IconButton(onClick = { viewModel.refresh() }) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    tint = MaterialTheme.colors.onPrimary
+                )
+            }
+            IconButton(onClick = { isMenuOpened = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = null,
+                    tint = MaterialTheme.colors.onPrimary
+                )
+            }
         }
         LazyColumn(
             modifier = Modifier
@@ -164,62 +167,120 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
             }
         }
     }
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .padding(0.dp, 56.dp)
+        .wrapContentSize(Alignment.TopEnd)) {
+        CascadeDropdownMenu(expanded = isMenuOpened, onDismissRequest = { isMenuOpened = false }){
+            DropdownMenuItem(
+                text = {
+                    Row (modifier = Modifier.fillMaxWidth(),
+                         verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_settings_brightness), null
+                        )
+                        Text(
+                            text = stringResource(id = R.string.change_theme),
+                            modifier = Modifier.padding(10.dp, 0.dp)
+                        )
+                    }
+
+                },
+                children = {
+                    DropdownMenuItem(onClick = {
+                        isMenuOpened = false
+                        viewModel.theme.value = AppData.AUTO_MODE
+                    }) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_brightness_auto), null
+                        )
+                        Text(
+                            text = stringResource(id = R.string.theme_auto),
+                            modifier = Modifier.padding(10.dp, 0.dp)
+                        )
+                    }
+                    DropdownMenuItem(onClick = {
+                        isMenuOpened = false
+                        viewModel.theme.value = AppData.DARK_MODE
+                    }) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_dark_mode), null
+                        )
+                        Text(
+                            text = stringResource(id = R.string.theme_dark),
+                            modifier = Modifier.padding(10.dp, 0.dp)
+                        )
+                    }
+                    DropdownMenuItem(onClick = {
+                        isMenuOpened = false
+                        viewModel.theme.value = AppData.LIGHT_MODE
+                    }) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_light_mode), null
+                        )
+                        Text(
+                            text = stringResource(id = R.string.theme_light),
+                            modifier = Modifier.padding(10.dp, 0.dp)
+                        )
+                    }
+                })
+            DropdownMenuItem(text = {
+                Row (modifier = Modifier.fillMaxWidth(),
+                     verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_language), null
+                    )
+                    Text(
+                        text = stringResource(id = R.string.change_language),
+                        modifier = Modifier.padding(10.dp, 0.dp)
+                    )
+                }
+
+            }, children = {
+                DropdownMenuItem(onClick = {
+                    isMenuOpened = false
+                    viewModel.language.value = AppData.AUTO_MODE
+                }) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_language), null
+                    )
+                    Text(
+                        text = stringResource(id = R.string.language_auto),
+                        modifier = Modifier.padding(10.dp, 0.dp)
+                    )
+                }
+                DropdownMenuItem(onClick = {
+                    isMenuOpened = false
+                    viewModel.language.value = AppData.RU_MODE
+                }) {
+                    Text(text = "Ru", fontSize = 18.sp,
+                         color = MaterialTheme.colors.onBackground)
+                    Text(
+                        text = stringResource(id = R.string.language_ru),
+                        modifier = Modifier.padding(10.dp, 0.dp)
+                    )
+                }
+                DropdownMenuItem(onClick = {
+                    isMenuOpened = false
+                    viewModel.language.value = AppData.EN_MODE
+                }) {
+                    Text(text = "En", fontSize = 18.sp,
+                         color = MaterialTheme.colors.onBackground)
+                    Text(text = stringResource(id = R.string.language_en),
+                         modifier = Modifier.padding(10.dp, 0.dp)
+                    )
+                }
+            })
+        }
+    }
 
     if (isRefreshing)
         Box(modifier = Modifier
             .fillMaxSize()
             .background(color = Color.changeAlpha(Color.DarkGray, 0.5f))
             .clickable {}, contentAlignment = Alignment.Center) {
-            LoadingBlink(size = 200.dp, count = 20, color2 = MaterialTheme.colors.primary)
+            LoadingBigBlink(size = 200.dp, color2 = MaterialTheme.colors.primary)
         }
-
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd){
-        DropdownMenu(expanded = isMenuOpened.value, onDismissRequest = { isMenuOpened.value = false }) {
-            DropdownMenuItem(onClick = {}) {
-                Image(painter = painterResource(id = R.drawable.ic_settings_brightness), null)
-                Text("theme")
-                Switch(checked = true, onCheckedChange = {})
-            }
-        }
-    }
-
-//    AnimatedVisibility(
-//        visible = isMenuOpened.value,
-//        enter = fadeIn(),
-//        exit = fadeOut()
-//    ) {
-//        Box(modifier = Modifier
-//            .fillMaxSize()
-//            .background(color = Color.changeAlpha(Color.DarkGray, 0.3f))
-//            .clickable { isMenuOpened.value = false }, contentAlignment = Alignment.TopEnd) {
-//            AnimatedVisibility(
-//                modifier = Modifier.padding(10.dp, 56.dp),
-//                visible = isMenuOpened.value,
-//                enter = slideIn { IntOffset(100, -100) },
-//                exit = slideOut { IntOffset(100, -100) }
-//            ) {
-//                Box(
-//                    Modifier.background(
-//                        MaterialTheme.colors.background,
-//                        RoundedCornerShape(20.dp)
-//                    )
-//                ) {
-//                    Box(modifier = Modifier
-//                        .background(MaterialTheme.colors.background)
-//                        .width(20.dp)
-//                        .height(20.dp), contentAlignment = Alignment.TopEnd) {}
-//                    Column(modifier = Modifier.padding(15.dp)) {
-//                        Text(
-//                            text = stringResource(R.string.settings),
-//                            color = MaterialTheme.colors.onBackground,
-//                            fontSize = 13.sp
-//                        )
-//
-//                    }
-//                }
-//            }
-//        }
-//    }
 }
 
 @Preview(showBackground = true)
@@ -293,11 +354,24 @@ class SelectActivityViewModel(context: Context): ViewModel(){
         get() = _isRefreshing
     val listOfNets: LiveData<ArrayList<NetBrief>>
         get() = _listOfNets
-    val theme: StateFlow<Int>
+    var theme: MutableStateFlow<Int>
         get() = MutableStateFlow(_appData.themeMode)
-    val language: StateFlow<Int>
+        set(value) {
+            if (value.value == AppData.AUTO_MODE ||
+                value.value == AppData.DARK_MODE ||
+                value.value == AppData.DARK_MODE){
+                _appData.themeMode = value.value
+            }
+        }
+    var language: MutableStateFlow<Int>
         get() = MutableStateFlow(_appData.languageMode)
-
+        set(value) {
+            if (value.value == AppData.AUTO_MODE ||
+                value.value == AppData.RU_MODE ||
+                value.value == AppData.EN_MODE){
+                _appData.languageMode = value.value
+            }
+        }
     fun refresh(){
         _isRefreshing.value = true
         viewModelScope.launch {
