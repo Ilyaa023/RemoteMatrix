@@ -5,12 +5,21 @@
     <string name="title_activity_select">SelectActivity</string>
 
     <string name="net_id">ID: </string>
-    <string name="net_bmn_cnt">Количество ОИНов: </string>
+    <string name="net_bmn_cnt">Количество ОИН: </string>
     <string name="net_dvcs">Подключенные устройства: </string>
     <string name="net_no_dvcs">Нет подключенных устройств</string>
     <string name="net_select">Выберите Сеть</string>
 
     <string name="change_theme">Сменить тему</string>
+    <string name="theme_auto">Авто</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Темная</string>
+
+    <string name="change_language">Сменить язык</string>
+    <string name="language_auto">Авто</string>
+    <string name="language_ru">Русский</string>
+    <string name="language_en">Английский</string>
+
     <string name="settings">Настройки</string>
     <string name="refresh">Обновить</string>
 </resources>
