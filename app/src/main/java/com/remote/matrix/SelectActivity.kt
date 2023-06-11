@@ -1,6 +1,9 @@
 package com.remote.matrix
 
+    import android.annotation.SuppressLint
+    import android.app.Activity
     import android.content.Context
+    import android.os.Build
     import android.os.Bundle
     import androidx.activity.ComponentActivity
     import androidx.activity.compose.setContent
@@ -9,7 +12,6 @@ package com.remote.matrix
     import androidx.compose.animation.fadeOut
     import androidx.compose.animation.slideInVertically
     import androidx.compose.animation.slideOutVertically
-    import androidx.compose.foundation.Image
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,13 +26,10 @@ package com.remote.matrix
     import androidx.compose.foundation.layout.wrapContentSize
     import androidx.compose.foundation.lazy.LazyColumn
     import androidx.compose.foundation.shape.RoundedCornerShape
-    import androidx.compose.material.DropdownMenu
-    import androidx.compose.material.DropdownMenuItem
     import androidx.compose.material.Icon
     import androidx.compose.material.IconButton
     import androidx.compose.material.MaterialTheme
     import androidx.compose.material.Surface
-    import androidx.compose.material.Switch
     import androidx.compose.material.Text
     import androidx.compose.material.TopAppBar
     import androidx.compose.material.icons.Icons
@@ -46,10 +45,9 @@ package com.remote.matrix
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.graphics.Color
-    import androidx.compose.ui.res.painterResource
+    import androidx.compose.ui.platform.LocalConfiguration
     import androidx.compose.ui.res.stringResource
     import androidx.compose.ui.text.font.FontWeight
-    import androidx.compose.ui.tooling.preview.Preview
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
     import androidx.lifecycle.LiveData
@@ -63,7 +61,9 @@ package com.remote.matrix
     import com.remote.domain.useCases.brief.GetNetsBrief
     import com.remote.matrix.data.firebaseDB.NetsBrief
     import com.remote.matrix.data.local.LocalDataRepo
+    import com.remote.matrix.ui.generalElements.ActivityWithMenuViewModel
     import com.remote.matrix.ui.generalElements.LoadingBigBlink
+    import com.remote.matrix.ui.generalElements.SettingsPopupMenu
     import com.remote.matrix.ui.theme.RemoteMatrixTheme
     import com.remote.matrix.ui.theme.TertiaryContainerDark
     import com.remote.matrix.ui.theme.TertiaryContainerLight
@@ -78,15 +78,30 @@ package com.remote.matrix
     import kotlinx.coroutines.flow.StateFlow
     import kotlinx.coroutines.launch
     import me.saket.cascade.CascadeDropdownMenu
+    import java.util.Locale
 
 class SelectActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
+            val activity = this@SelectActivity
             val viewModel: SelectActivityViewModel = viewModel(factory = SAVMFactory(applicationContext))
             val theme by viewModel.theme.collectAsState()
             val language by viewModel.language.collectAsState()
 
+                val config = resources.configuration
+                val locale = Locale(when (language) {
+                    AppData.RU_MODE -> "ru"
+                    AppData.EN_MODE -> "en"
+                    else -> LocalConfiguration.current.locales[0].language
+                })
+                Locale.setDefault(locale)
+                config.setLocale(locale)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+                    createConfigurationContext(config)
+                resources.updateConfiguration(config, resources.displayMetrics)
 
             viewModel.refresh()
             RemoteMatrixTheme(darkTheme = when(theme){
@@ -98,22 +113,20 @@ class SelectActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    SelectActivityScreen(viewModel = viewModel)
+                    SelectActivityScreen(viewModel = viewModel, activity)
                 }
             }
         }
     }
 }
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @Composable
-fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
+fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel(), activity: Activity) {
+
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listOfNets by viewModel.listOfNets.observeAsState()
-    var isMenuOpened by remember { mutableStateOf(false) }
-    var expandedTheme by remember { mutableStateOf(false) }
-    var expandedLanguage by remember { mutableStateOf(false) }
-
-//    TODO("add the buttons: language, theme")
+    var isMenuOpened = remember { mutableStateOf(false) }
 
     Column() {
         TopAppBar(
@@ -134,7 +147,7 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
                     tint = MaterialTheme.colors.onPrimary
                 )
             }
-            IconButton(onClick = { isMenuOpened = true }) {
+            IconButton(onClick = { isMenuOpened.value = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = null,
@@ -153,7 +166,13 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
                     AnimatedVisibility(visible = !isRefreshing,
                                        enter = slideInVertically () + fadeIn(),
                                        exit = slideOutVertically() + fadeOut()) {
-                        NetElement(net = net)
+                        NetElement(
+                            net = net,
+                            darkTheme = when(viewModel.theme.value){
+                                AppData.LIGHT_MODE -> false
+                                AppData.DARK_MODE -> true
+                                else -> isSystemInDarkTheme()
+                            })
                     }
                 }
                 if (counter < listOfNets!!.size)
@@ -171,107 +190,11 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
         .fillMaxSize()
         .padding(0.dp, 56.dp)
         .wrapContentSize(Alignment.TopEnd)) {
-        CascadeDropdownMenu(expanded = isMenuOpened, onDismissRequest = { isMenuOpened = false }){
-            DropdownMenuItem(
-                text = {
-                    Row (modifier = Modifier.fillMaxWidth(),
-                         verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_settings_brightness), null
-                        )
-                        Text(
-                            text = stringResource(id = R.string.change_theme),
-                            modifier = Modifier.padding(10.dp, 0.dp)
-                        )
-                    }
-
-                },
-                children = {
-                    DropdownMenuItem(onClick = {
-                        isMenuOpened = false
-                        viewModel.theme.value = AppData.AUTO_MODE
-                    }) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_brightness_auto), null
-                        )
-                        Text(
-                            text = stringResource(id = R.string.theme_auto),
-                            modifier = Modifier.padding(10.dp, 0.dp)
-                        )
-                    }
-                    DropdownMenuItem(onClick = {
-                        isMenuOpened = false
-                        viewModel.theme.value = AppData.DARK_MODE
-                    }) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_dark_mode), null
-                        )
-                        Text(
-                            text = stringResource(id = R.string.theme_dark),
-                            modifier = Modifier.padding(10.dp, 0.dp)
-                        )
-                    }
-                    DropdownMenuItem(onClick = {
-                        isMenuOpened = false
-                        viewModel.theme.value = AppData.LIGHT_MODE
-                    }) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_light_mode), null
-                        )
-                        Text(
-                            text = stringResource(id = R.string.theme_light),
-                            modifier = Modifier.padding(10.dp, 0.dp)
-                        )
-                    }
-                })
-            DropdownMenuItem(text = {
-                Row (modifier = Modifier.fillMaxWidth(),
-                     verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_language), null
-                    )
-                    Text(
-                        text = stringResource(id = R.string.change_language),
-                        modifier = Modifier.padding(10.dp, 0.dp)
-                    )
-                }
-
-            }, children = {
-                DropdownMenuItem(onClick = {
-                    isMenuOpened = false
-                    viewModel.language.value = AppData.AUTO_MODE
-                }) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_language), null
-                    )
-                    Text(
-                        text = stringResource(id = R.string.language_auto),
-                        modifier = Modifier.padding(10.dp, 0.dp)
-                    )
-                }
-                DropdownMenuItem(onClick = {
-                    isMenuOpened = false
-                    viewModel.language.value = AppData.RU_MODE
-                }) {
-                    Text(text = "Ru", fontSize = 18.sp,
-                         color = MaterialTheme.colors.onBackground)
-                    Text(
-                        text = stringResource(id = R.string.language_ru),
-                        modifier = Modifier.padding(10.dp, 0.dp)
-                    )
-                }
-                DropdownMenuItem(onClick = {
-                    isMenuOpened = false
-                    viewModel.language.value = AppData.EN_MODE
-                }) {
-                    Text(text = "En", fontSize = 18.sp,
-                         color = MaterialTheme.colors.onBackground)
-                    Text(text = stringResource(id = R.string.language_en),
-                         modifier = Modifier.padding(10.dp, 0.dp)
-                    )
-                }
-            })
-        }
+        SettingsPopupMenu(
+            isMenuOpened = isMenuOpened,
+            viewModel = viewModel,
+            activity = activity
+        )
     }
 
     if (isRefreshing)
@@ -283,27 +206,27 @@ fun SelectActivityScreen(viewModel: SelectActivityViewModel = viewModel()) {
         }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    RemoteMatrixTheme {
-        SelectActivityScreen()
-    }
+//@Preview(showBackground = true)
+//@Composable
+//fun DefaultPreview() {
+//    RemoteMatrixTheme {
+//        SelectActivityScreen()
+//    }
+//
+//}
 
-}
-
 @Composable
-fun NetElement(net: NetBrief){
+fun NetElement(net: NetBrief, darkTheme: Boolean){
     Column(Modifier
                .fillMaxWidth()
                .clickable { }
                .background(
-                   if (isSystemInDarkTheme()) TertiaryContainerDark
+                   if (darkTheme) TertiaryContainerDark
                    else TertiaryContainerLight
                )
                .padding(20.dp)
     ){
-        val textColor = if (isSystemInDarkTheme()) onTertiaryContainerDark 
+        val textColor = if (darkTheme) onTertiaryContainerDark
                         else onTertiaryContainerLight
         Text(
             text = stringResource(id = R.string.net_id) + net.id,
@@ -321,7 +244,7 @@ fun NetElement(net: NetBrief){
             Column(modifier = Modifier
                 .weight(1f)
                 .background(
-                    if (isSystemInDarkTheme()) TertiaryDark else TertiaryLight,
+                    if (darkTheme) TertiaryDark else TertiaryLight,
                     shape = RoundedCornerShape(10.dp)
                 )
                 .padding(10.dp)
@@ -329,12 +252,12 @@ fun NetElement(net: NetBrief){
                 Text(
                     text = if (net.connectedDevices.size > 0) stringResource(id = R.string.net_dvcs)
                     else stringResource(id = R.string.net_no_dvcs),
-                    color = if (isSystemInDarkTheme()) onTertiaryDark else onTertiaryLight,
+                    color = if (darkTheme) onTertiaryDark else onTertiaryLight,
                     fontSize = 14.sp,
                 )
                 for (device in net.connectedDevices) Text(
                     text = "\t$device",
-                    color = if (isSystemInDarkTheme()) onTertiaryDark else onTertiaryLight,
+                    color = if (darkTheme) onTertiaryDark else onTertiaryLight,
                     fontSize = 13.sp
                 )
             }
@@ -342,36 +265,25 @@ fun NetElement(net: NetBrief){
     }
 }
 
-class SelectActivityViewModel(context: Context): ViewModel(){
+class SelectActivityViewModel(context: Context): ActivityWithMenuViewModel(){
     private val _isRefreshing = MutableStateFlow(true)
     private val _listOfNets = MutableLiveData(ArrayList<NetBrief>())
     private val _appData: AppData
+    private val repo: LocalDataRepo
     init {
-        _appData = LocalDataRepo(context).getData()
+        repo = LocalDataRepo(context)
+        _appData = repo.getData()
     }
 
     val isRefreshing: StateFlow<Boolean>
         get() = _isRefreshing
     val listOfNets: LiveData<ArrayList<NetBrief>>
         get() = _listOfNets
-    var theme: MutableStateFlow<Int>
+    val theme: MutableStateFlow<Int>
         get() = MutableStateFlow(_appData.themeMode)
-        set(value) {
-            if (value.value == AppData.AUTO_MODE ||
-                value.value == AppData.DARK_MODE ||
-                value.value == AppData.DARK_MODE){
-                _appData.themeMode = value.value
-            }
-        }
-    var language: MutableStateFlow<Int>
+    val language: MutableStateFlow<Int>
         get() = MutableStateFlow(_appData.languageMode)
-        set(value) {
-            if (value.value == AppData.AUTO_MODE ||
-                value.value == AppData.RU_MODE ||
-                value.value == AppData.EN_MODE){
-                _appData.languageMode = value.value
-            }
-        }
+
     fun refresh(){
         _isRefreshing.value = true
         viewModelScope.launch {
@@ -379,6 +291,26 @@ class SelectActivityViewModel(context: Context): ViewModel(){
                 _isRefreshing.value = false
                 _listOfNets.value = it
             }
+        }
+    }
+
+    override fun setTheme(theme: Int, activity: Activity){
+        if (theme == AppData.AUTO_MODE ||
+            theme == AppData.DARK_MODE ||
+            theme == AppData.LIGHT_MODE){
+            _appData.themeMode = theme
+            repo.setData(_appData)
+            activity.recreate()
+        }
+    }
+
+    override fun setLanguage(language: Int, activity: Activity){
+        if (language == AppData.AUTO_MODE ||
+            language == AppData.RU_MODE ||
+            language == AppData.EN_MODE){
+            _appData.languageMode = language
+            repo.setData(_appData)
+            activity.recreate()
         }
     }
 }
