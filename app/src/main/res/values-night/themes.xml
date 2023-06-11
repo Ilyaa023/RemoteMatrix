@@ -19,6 +19,6 @@
     <style name="Theme.RemoteMatrix.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
     <style name="Theme.RemoteMatrix.Splash" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">@drawable/ic_app</item>
+        <item name="android:windowBackground">@drawable/background_splash_dark</item>
     </style>
 </resources>
