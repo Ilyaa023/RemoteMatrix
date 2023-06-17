@@ -14,7 +14,6 @@ class SplashActivity : AppCompatActivity() {
             val splashScreen = installSplashScreen()
             splashScreen.setKeepOnScreenCondition { true }
         }
-//        setContentView(R.layout.activity_splash)
         startActivity(Intent(this@SplashActivity, SelectActivity::class.java))
         finish()
     }
