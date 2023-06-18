@@ -3,8 +3,10 @@ package com.remote.matrix
     import android.annotation.SuppressLint
     import android.app.Activity
     import android.content.Context
+    import android.database.Observable
     import android.os.Build
     import android.os.Bundle
+    import android.widget.Toast
     import androidx.activity.ComponentActivity
     import androidx.activity.compose.setContent
     import androidx.compose.animation.AnimatedVisibility
@@ -41,7 +43,6 @@ package com.remote.matrix
     import androidx.compose.runtime.livedata.observeAsState
     import androidx.compose.runtime.mutableStateOf
     import androidx.compose.runtime.remember
-    import androidx.compose.runtime.setValue
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.graphics.Color
@@ -50,12 +51,16 @@ package com.remote.matrix
     import androidx.compose.ui.text.font.FontWeight
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
+    import androidx.databinding.ObservableArrayList
+    import androidx.databinding.ObservableList
+    import androidx.databinding.ObservableList.OnListChangedCallback
     import androidx.lifecycle.LiveData
     import androidx.lifecycle.MutableLiveData
     import androidx.lifecycle.ViewModel
     import androidx.lifecycle.ViewModelProvider
     import androidx.lifecycle.viewModelScope
     import androidx.lifecycle.viewmodel.compose.viewModel
+    import com.remote.domain.interfaces.IErrorCallback
     import com.remote.domain.models.AppData
     import com.remote.domain.models.NetBrief
     import com.remote.domain.useCases.brief.GetNetsBrief
@@ -77,7 +82,6 @@ package com.remote.matrix
     import kotlinx.coroutines.flow.MutableStateFlow
     import kotlinx.coroutines.flow.StateFlow
     import kotlinx.coroutines.launch
-    import me.saket.cascade.CascadeDropdownMenu
     import java.util.Locale
 
 class SelectActivity : ComponentActivity() {
@@ -90,18 +94,39 @@ class SelectActivity : ComponentActivity() {
             val theme by viewModel.theme.collectAsState()
             val language by viewModel.language.collectAsState()
 
-                val config = resources.configuration
-                val locale = Locale(when (language) {
-                    AppData.RU_MODE -> "ru"
-                    AppData.EN_MODE -> "en"
-                    else -> LocalConfiguration.current.locales[0].language
-                })
-                Locale.setDefault(locale)
-                config.setLocale(locale)
+            val config = resources.configuration
+            val locale = Locale(when (language) {
+                AppData.RU_MODE -> "ru"
+                AppData.EN_MODE -> "en"
+                else -> LocalConfiguration.current.locales[0].language
+            })
+            Locale.setDefault(locale)
+            config.setLocale(locale)
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-                    createConfigurationContext(config)
-                resources.updateConfiguration(config, resources.displayMetrics)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+                createConfigurationContext(config)
+            resources.updateConfiguration(config, resources.displayMetrics)
+
+            viewModel.errors.addOnListChangedCallback(
+                object : OnListChangedCallback<ObservableList<String>>() {
+                    override fun onChanged(sender: ObservableList<String>?) {
+                        if (sender!!.size > 0) {
+                            Toast.makeText(baseContext, sender[0], Toast.LENGTH_SHORT).show()
+                            sender.removeAt(0)
+                            viewModel.disableRefresh()
+                        }
+                    }
+                    override fun onItemRangeChanged(
+                            sender: ObservableList<String>?, positionStart: Int, itemCount: Int) {}
+                    override fun onItemRangeInserted(
+                            sender: ObservableList<String>?, positionStart: Int, itemCount: Int) {}
+                    override fun onItemRangeMoved(
+                            sender: ObservableList<String>?, fromPosition: Int,
+                            toPosition: Int, itemCount: Int) {}
+                    override fun onItemRangeRemoved(
+                            sender: ObservableList<String>?, positionStart: Int, itemCount: Int) {}
+                }
+            )
 
             viewModel.refresh()
             RemoteMatrixTheme(darkTheme = when(theme){
@@ -265,11 +290,14 @@ fun NetElement(net: NetBrief, darkTheme: Boolean){
     }
 }
 
-class SelectActivityViewModel(context: Context): ActivityWithMenuViewModel(){
+class SelectActivityViewModel(context: Context): ActivityWithMenuViewModel(), IErrorCallback {
     private val _isRefreshing = MutableStateFlow(true)
     private val _listOfNets = MutableLiveData(ArrayList<NetBrief>())
     private val _appData: AppData
     private val repo: LocalDataRepo
+
+    val errors = ObservableArrayList<String>()
+
     init {
         repo = LocalDataRepo(context)
         _appData = repo.getData()
@@ -284,10 +312,14 @@ class SelectActivityViewModel(context: Context): ActivityWithMenuViewModel(){
     val language: MutableStateFlow<Int>
         get() = MutableStateFlow(_appData.languageMode)
 
+    fun disableRefresh(){
+        _isRefreshing.value = false
+    }
+
     fun refresh(){
         _isRefreshing.value = true
         viewModelScope.launch {
-            GetNetsBrief(NetsBrief()).execute {
+            GetNetsBrief(NetsBrief(this@SelectActivityViewModel)).execute {
                 _isRefreshing.value = false
                 _listOfNets.value = it
             }
@@ -312,6 +344,10 @@ class SelectActivityViewModel(context: Context): ActivityWithMenuViewModel(){
             repo.setData(_appData)
             activity.recreate()
         }
+    }
+
+    override fun ErrCallback(errMsg: String) {
+        errors.add(errMsg)
     }
 }
 
